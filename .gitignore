@@ -6,3 +6,12 @@ target/
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+backend.hcl
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log

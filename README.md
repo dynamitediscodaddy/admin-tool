@@ -105,3 +105,9 @@ docker compose up --build -d
 Open http://localhost:3000. Only the frontend is exposed; its `/api/dashboard` route forwards requests to the API over the container network. The backend image runs its tests during the build. Both runtime containers use non-root users.
 
 On a container hosting provider, build from the repository root using `apps/api/Dockerfile` and `apps/web/Dockerfile`. Set the frontend's runtime `API_BASE_URL` to the backend's reachable HTTP(S) origin (including the scheme and port if needed). Default ports are 8080 for the API and 3000 for the frontend; the API supports `SERVER_PORT` and the frontend supports `PORT`. Use `/api/dashboard` as an API readiness check. Put HTTPS and access control in front of the deployment before using real financial data.
+
+## AWS deployment with Terraform
+
+See [the AWS setup guide](infra/aws/README.md) for one-time GitHub OIDC access setup, deployment, and destruction. Terraform manages the entire application stack, including the container images' ECR repositories. GitHub Actions uses temporary role credentials instead of access keys. The default region is AWS European Sovereign Cloud Germany (`eusc-de-east-1`).
+
+The app can be removed with `./infra/aws/destroy.sh`; `./infra/aws/destroy.sh --all` additionally removes the bootstrap deployment role and state storage using your original AWS administrator session. Nothing has been provisioned by adding these files.

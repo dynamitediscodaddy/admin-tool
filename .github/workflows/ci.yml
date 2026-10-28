@@ -28,3 +28,18 @@ jobs:
           cache: maven
       - run: ./mvnw -B verify
         working-directory: apps/api
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.17.1
+      - run: terraform fmt -check -recursive infra/aws
+      - run: for script in infra/aws/*.sh; do bash -n "$script"; done
+      - run: terraform -chdir=infra/aws/bootstrap init -backend=false -input=false
+      - run: terraform -chdir=infra/aws/bootstrap validate
+      - run: terraform -chdir=infra/aws/bootstrap test
+      - run: terraform -chdir=infra/aws/terraform init -backend=false -input=false
+      - run: terraform -chdir=infra/aws/terraform validate
+      - run: terraform -chdir=infra/aws/terraform test
