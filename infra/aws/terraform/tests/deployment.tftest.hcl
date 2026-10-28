@@ -45,8 +45,8 @@ run "sovereign_cloud_demo" {
     hosted_zone_id = null
   }
   assert {
-    condition     = aws_ecs_service.app.desired_count == 1 && aws_ecs_service.app.wait_for_steady_state && aws_ecs_service.app.force_delete
-    error_message = "Deployment must wait for one healthy task and support destroy."
+    condition     = aws_ecs_service.app.desired_count == 1 && !aws_ecs_service.app.wait_for_steady_state && aws_ecs_service.app.force_delete
+    error_message = "The helper must own health waiting for the single task; the service must support destroy."
   }
   assert {
     condition     = aws_iam_role_policy_attachment.execution.policy_arn == "arn:aws-eusc:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"

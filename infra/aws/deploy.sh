@@ -43,6 +43,14 @@ for component in api web; do
   fi
 done
 terraform -chdir=infra/aws/terraform apply -var=enable_service=true "$@"
+cluster="$(terraform -chdir=infra/aws/terraform output -raw cluster)"
+service="$(terraform -chdir=infra/aws/terraform output -raw service)"
+# Use DescribeServices-based health checks rather than newer deployment-status APIs.
+if ! aws ecs wait services-stable --region "$AWS_REGION" --cluster "$cluster" --services "$service"; then
+  aws ecs describe-services --region "$AWS_REGION" --cluster "$cluster" --services "$service" \
+    --query 'services[0].{status:status,desired:desiredCount,running:runningCount,pending:pendingCount,events:events[0:8].message}'
+  exit 1
+fi
 url="$(terraform -chdir=infra/aws/terraform output -raw url)"
 curl --fail --silent --show-error --retry 6 --retry-delay 5 --retry-all-errors "$url/api/dashboard?year=2026" >/dev/null
 printf 'Deployed and API checked: %s\n' "$url"
