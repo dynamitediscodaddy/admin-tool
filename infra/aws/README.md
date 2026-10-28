@@ -75,7 +75,7 @@ The workflow must be committed/pushed and access setup must have succeeded. A ma
 gh workflow run aws.yml --ref feature/container-deployment -f action=deploy
 ```
 
-Or choose **Actions → AWS deployment → Run workflow**, select the trusted branch, and choose `deploy`. It bootstraps ECR only on the first run, builds both linux/amd64 images, reuses immutable images on retries, deploys the service, waits for health, and verifies the API. The URL appears in the workflow summary. Subsequent committed versions receive distinct image tags.
+Or choose **Actions → AWS deployment → Run workflow**, select the trusted branch, and choose `deploy`. It bootstraps ECR only on the first run, builds both linux/amd64 images, reuses immutable images on retries, deploys the service, waits for health, and verifies the API. The AWS CLI `services-stable` waiter checks readiness using `DescribeServices`, then an HTTP API check must succeed before the URL appears in the workflow summary. Terraform creates/updates the service without its newer deployment-status API waiter; use the deployment helper for end-to-end health verification. Subsequent committed versions receive distinct image tags.
 
 For a local deployment with the same authenticated AWS session, Docker, and a clean committed checkout:
 

@@ -23,6 +23,8 @@ case "$*" in
   'apply -var=enable_service=true'*) echo deploy >> "$DEPLOY_TEST_ROOT/trace" ;;
   'output -raw web_repository_url') echo 123456789012.dkr.ecr.eusc-de-east-1.amazonaws.eu/admin-tool-demo-web ;;
   'output -raw api_repository_url') echo 123456789012.dkr.ecr.eusc-de-east-1.amazonaws.eu/admin-tool-demo-api ;;
+  'output -raw cluster') echo admin-tool-demo ;;
+  'output -raw service') echo admin-tool-demo ;;
   'output -raw url') echo http://dashboard.example.test ;;
   *) echo "Unexpected Terraform call: $*" >&2; exit 1 ;;
 esac
@@ -40,6 +42,10 @@ cat > "$test_root/bin/aws" <<'STUB'
 case "$*" in
   'ecr get-login-password'*) echo fake-test-password ;;
   'ecr describe-images'*) exit 0 ;;
+  'ecs wait services-stable'*)
+    echo ready >> "$DEPLOY_TEST_ROOT/trace"
+    [ "${SIMULATE_WAIT_FAILURE:-0}" = 0 ] ;;
+  'ecs describe-services'*) echo 'Unhealthy service diagnostic' ;;
   *) exit 1 ;;
 esac
 STUB
@@ -57,11 +63,18 @@ echo verified >> "$DEPLOY_TEST_ROOT/trace"
 STUB
 chmod +x "$test_root/bin/"*
 bash "$test_root/infra/aws/deploy.sh" -auto-approve
-printf 'bootstrap\nregistry-login\ndeploy\nverified\n' > "$test_root/expected"
+printf 'bootstrap\nregistry-login\ndeploy\nready\nverified\n' > "$test_root/expected"
 diff -u "$test_root/expected" "$test_root/trace"
 # A repeat must reuse registries, never disable or recreate the running service.
 : > "$test_root/trace"
 bash "$test_root/infra/aws/deploy.sh" -auto-approve
-printf 'registry-login\ndeploy\nverified\n' > "$test_root/expected"
+printf 'registry-login\ndeploy\nready\nverified\n' > "$test_root/expected"
 diff -u "$test_root/expected" "$test_root/trace"
-printf 'PASS: first deployment bootstraps registries; repeat keeps the service enabled.\n'
+: > "$test_root/trace"
+if SIMULATE_WAIT_FAILURE=1 bash "$test_root/infra/aws/deploy.sh" -auto-approve; then
+  echo 'An unhealthy service must fail deployment.' >&2; exit 1
+fi
+if grep -q verified "$test_root/trace"; then
+  echo 'API verification must not run before service readiness.' >&2; exit 1
+fi
+printf 'PASS: initial/repeat deployments wait for readiness; unhealthy services fail.\n'

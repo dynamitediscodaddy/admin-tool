@@ -203,7 +203,7 @@ resource "aws_ecs_service" "app" {
   task_definition                   = aws_ecs_task_definition.app.arn
   desired_count                     = 1
   launch_type                       = "FARGATE"
-  wait_for_steady_state             = true
+  wait_for_steady_state             = false
   force_delete                      = true
   health_check_grace_period_seconds = 180
   deployment_circuit_breaker {
