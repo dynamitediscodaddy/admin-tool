@@ -14,6 +14,10 @@ run "repository_scoped_access" {
     error_message = "The sovereign partition must use the configured audience."
   }
   assert {
+    condition     = contains(one([for statement in jsondecode(aws_iam_role_policy.deploy.policy).Statement : statement if statement.Sid == "RegionalInfrastructure"]).Action, "ec2:GetSecurityGroupsForVpc")
+    error_message = "Load balancer creation requires the regional EC2 security-group lookup permission."
+  }
+  assert {
     condition     = length(aws_iam_role_policy.deploy.policy) < 10240
     error_message = "The inline deployment policy exceeds IAM's role policy quota."
   }
