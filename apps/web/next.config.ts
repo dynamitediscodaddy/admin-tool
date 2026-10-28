@@ -1,12 +1,8 @@
 import type { NextConfig } from "next";
+import path from "node:path";
+
 const config: NextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${process.env.API_BASE_URL ?? "http://localhost:8080"}/api/:path*`,
-      },
-    ];
-  },
+  output: "standalone",
+  outputFileTracingRoot: path.join(__dirname, "../.."),
 };
 export default config;

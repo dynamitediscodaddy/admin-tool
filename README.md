@@ -27,7 +27,7 @@ npm run dev
 
 Open http://localhost:3000. The frontend proxies `/api/*` to http://localhost:8080. To change the backend address, copy `apps/web/.env.example` to `apps/web/.env.local`, edit `API_BASE_URL`, and restart Next.js.
 
-For a production frontend build, run `npm run build` then `npm run start --workspace apps/web`. The API must also be running. Set `API_BASE_URL` before building if it differs from the default.
+For a production frontend build, run `npm run build` then `npm run start --workspace apps/web`. The API must also be running. `API_BASE_URL` is read at runtime, so the same frontend image can target different API hosts.
 
 ## Dashboard
 
@@ -93,3 +93,15 @@ Backend tests cover exact monetary aggregation, per-account reconciliation, year
 - `.github/workflows/ci.yml`: frontend and backend checks.
 
 This initial scaffold has no authentication or live bank integration. Add access control before exposing financial data in a deployed environment.
+
+## Container deployment
+
+Build and run both services with Docker Compose:
+
+```sh
+docker compose up --build -d
+```
+
+Open http://localhost:3000. Only the frontend is exposed; its `/api/dashboard` route forwards requests to the API over the container network. The backend image runs its tests during the build. Both runtime containers use non-root users.
+
+On a container hosting provider, build from the repository root using `apps/api/Dockerfile` and `apps/web/Dockerfile`. Set the frontend's runtime `API_BASE_URL` to the backend's reachable HTTP(S) origin (including the scheme and port if needed). Default ports are 8080 for the API and 3000 for the frontend; the API supports `SERVER_PORT` and the frontend supports `PORT`. Use `/api/dashboard` as an API readiness check. Put HTTPS and access control in front of the deployment before using real financial data.
