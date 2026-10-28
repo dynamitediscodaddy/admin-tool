@@ -1,0 +1,54 @@
+name: AWS deployment
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Deploy or remove all app resources (keep access and state storage)
+        type: choice
+        options: [deploy, destroy]
+        default: deploy
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: aws-admin-tool
+  cancel-in-progress: false
+jobs:
+  infrastructure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      APP_DOMAIN_NAME: ${{ vars.APP_DOMAIN_NAME }}
+      APP_HOSTED_ZONE_ID: ${{ vars.APP_HOSTED_ZONE_ID }}
+      TF_IN_AUTOMATION: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check access setup
+        env:
+          ROLE: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          AUDIENCE: ${{ vars.AWS_OIDC_AUDIENCE }}
+        run: |
+          test -n "$ROLE" && test -n "$AUDIENCE" && test -n "$AWS_REGION" && test -n "$TF_STATE_BUCKET" || {
+            echo 'Run infra/aws/setup-access.sh from an authenticated AWS session first.' >&2
+            exit 1
+          }
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          audience: ${{ vars.AWS_OIDC_AUDIENCE }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.17.1
+          terraform_wrapper: false
+      - name: Deploy
+        if: inputs.action == 'deploy'
+        run: |
+          ./infra/aws/deploy.sh -auto-approve
+          echo "Dashboard: $(terraform -chdir=infra/aws/terraform output -raw url)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Destroy app infrastructure
+        if: inputs.action == 'destroy'
+        run: |
+          ./infra/aws/destroy.sh -auto-approve
