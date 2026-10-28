@@ -28,6 +28,19 @@ During SSO configuration use your account's access portal URL, not a guessed URL
 
 The human bootstrap identity needs permission to manage S3 state storage, IAM OIDC providers, and the deployment role and its policy. Terraform shows the plan before creating them. The generated role can manage the named ECR repositories and task execution role, its state objects, and the regional infrastructure API operations listed in `bootstrap/main.tf`. Some infrastructure operations require `Resource = "*"`; this is a deployment role with substantial write access to networking, ECS, ALB and ACM in the selected region, not a read-only role or an account administrator role.
 
+### Alternative when browser CLI login fails and SSO is not enabled
+
+There is no need to enable IAM Identity Center or create an AWS organization solely for this bootstrap. The organization-wide setup can change account billing/free-tier treatment. If `aws login` returns an error and you do not already have SSO, use this one-time IAM-user path from your existing administrator console session:
+
+1. In **IAM → Policies → Create policy → JSON**, paste [bootstrap-user-policy.json](bootstrap-user-policy.json). Save it as `admin-tool-bootstrap`. This policy targets the default stack name and European Sovereign Cloud region only. It allows managing the named state bucket, GitHub identity provider, and named deployment role; it does not grant `AdministratorAccess`. It is still powerful: the bootstrap can write the deployment role's infrastructure permissions.
+2. In **IAM → Users → Create user**, create `admin-tool-bootstrap`, leave console access disabled, and attach the `admin-tool-bootstrap` policy. Use **Attach policies directly** and search for the policy you just created.
+3. Open that user's **Security credentials → Create access key**, select the CLI use case if prompted, and create a key. Use this IAM user's key, never a root access key.
+4. On your Mac, run `aws configure --profile admin-tool-bootstrap`. Enter the key ID and secret directly in Terminal, set region to `eusc-de-east-1`, and output to `json`. The CLI stores them locally; do not paste them into chat, GitHub, or repository files.
+5. Verify with `aws sts get-caller-identity --profile admin-tool-bootstrap --region eusc-de-east-1`, then run the access script below with `AWS_PROFILE=admin-tool-bootstrap`.
+6. After `Access ready`, delete the access key in IAM. GitHub will use temporary OIDC credentials for app deploy/destroy. Keep the local bootstrap Terraform state private and backed up. Full `destroy.sh --all` later needs a fresh authenticated administrator/bootstrap session; the deleted key will not work.
+
+The temporary IAM user and its policy are account-access prerequisites created manually in this alternative. They are not owned by the app Terraform stack; delete the user and policy in IAM when finished. If a GitHub OIDC provider already exists, use the existing-provider option below so the bootstrap does not attempt to create a duplicate.
+
 ## 2. Run one-time access setup
 
 Check out the deployment branch:
