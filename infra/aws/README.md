@@ -65,7 +65,7 @@ export TF_VAR_existing_oidc_provider_arn='arn:aws-eusc:iam::YOUR_ACCOUNT_ID:oidc
 
 The existing provider must include the audience printed by the bootstrap (`sts.amazonaws.eu` for `aws-eusc`, `sts.amazonaws.com` for standard AWS). Terraform will not own or delete that existing provider.
 
-By default the role trusts only `dynamitediscodaddy/admin-tool` on `feature/container-deployment`. Deploy workflows cannot assume it from other branches or forks. When moving deployment to main, rerun setup with `DEPLOY_BRANCH=main`, then run workflows on main. Review protection for the trusted branch; anyone who can modify and dispatch its workflow can use the deployment role.
+The setup script queries GitHub’s OIDC settings to detect its subject prefix, including immutable owner/repository IDs on newer repositories. Direct Terraform use defaults to this repository’s immutable subject prefix; set `github_subject_prefix` for a different repository. By default the role trusts only `dynamitediscodaddy/admin-tool` on `feature/container-deployment`. Deploy workflows cannot assume it from other branches or forks. When moving deployment to main, rerun setup with `DEPLOY_BRANCH=main`, then run workflows on main. Review protection for the trusted branch; anyone who can modify and dispatch its workflow can use the deployment role.
 
 ## 3. Deploy
 
