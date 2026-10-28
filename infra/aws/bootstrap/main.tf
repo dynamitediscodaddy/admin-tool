@@ -14,6 +14,15 @@ variable "github_branch" {
   type    = string
   default = "feature/container-deployment"
 }
+variable "github_subject_prefix" {
+  type        = string
+  default     = "repo:dynamitediscodaddy@346496808/admin-tool@1437431666"
+  description = "GitHub OIDC subject prefix. setup-access.sh detects this from the repository settings."
+  validation {
+    condition     = startswith(var.github_subject_prefix, "repo:") && !strcontains(var.github_subject_prefix, "*")
+    error_message = "Provide an exact GitHub repository subject prefix without wildcards."
+  }
+}
 variable "existing_oidc_provider_arn" {
   type        = string
   default     = null
@@ -78,7 +87,7 @@ resource "aws_iam_role" "github" {
     Principal = { Federated = var.existing_oidc_provider_arn != null ? var.existing_oidc_provider_arn : aws_iam_openid_connect_provider.github[0].arn },
     Condition = { StringEquals = {
       "token.actions.githubusercontent.com:aud" = local.audience,
-      "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:ref:refs/heads/${var.github_branch}"
+      "token.actions.githubusercontent.com:sub" = "${var.github_subject_prefix}:ref:refs/heads/${var.github_branch}"
     } }
   }] })
 }
