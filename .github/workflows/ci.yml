@@ -35,6 +35,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.17.1
+      - run: bash infra/aws/tests/deploy.sh
       - run: terraform fmt -check -recursive infra/aws
       - run: for script in infra/aws/*.sh; do bash -n "$script"; done
       - run: terraform -chdir=infra/aws/bootstrap init -backend=false -input=false
